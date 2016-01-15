@@ -6,17 +6,30 @@
     </head>
     <body>
         <?php
-        $squares = $_GET['board'];
+        // Set up a game board if not already playing
+        if(!isset($_GET['board'])) {
+            $squares = $_GET['board'] = '---------';
+        } else {
+            $squares = $_GET['board'];
+        }
 
 
         $game = new Game($squares);
-        $game->display();
+
+        // Check for winners or tie game
+        // If both checks fail then keep the playing the game
         if($game->winner('x')) {
-            echo 'You win. Lucky guesses!';
+            echo 'You win. Lucky guesses!<br />';
+            echo '<a href="/">Play Again</a>';
         } else if ($game->winner('o')) {
-            echo 'I win. Muahahahaha';
+            echo 'I win. Muahahahaha<br />';
+            echo '<a href="/">Play Again</a>';
+        } else if($game->tie_game()) {
+            echo 'Tie game!<br />';
+            echo '<a href="/">Play Again</a>';
         } else {
             echo 'No winner yet, but you are losing.';
+            $game->display();
         }
 
 
@@ -28,9 +41,22 @@
 class Game {
     var $position;
     var $newposition;
+    var $turn = 'x';
+    var $gameover = false;
+    var $dashes = 0;
 
+    // Game constructor.
+    // Gets status of game board.
     function __construct($squares) {
         $this->position = str_split($squares);
+
+        // Check number of dashes to determine if computer can play a turn
+        for($cell = 0; $cell < 9; $cell++) {
+            if ($this->position[$cell] == '-' ) {
+                $this->dashes++;
+            }
+        }
+
     }
 
     function winner($token) {
@@ -78,10 +104,42 @@ class Game {
         if($token <> '-') return '<td>' . $token . '</td>';
         // now the hard case
         $this->newposition = $this->position;
-        $this->newposition[$which] = 'o';
+        $this->newposition[$which] = $this->turn;
+        if($this->dashes >= 2) {
+            $this->newposition[$this->pick_move()] = 'o';
+        }
         $move = implode($this->newposition);
+        //$link = '/4711l1/index.php?board=' .$move; // This was used for testing purposes
         $link = '/?board='.$move;
         return '<td><a href="'.$link.'">-</a></td>';
+    }
+
+    // Function to determine computer's move
+    function pick_move() {
+        $rand_num = rand(0, 8);
+        // Keep choosing a random number between 0 and 8 until
+        // you choose a slot that is open
+        while($this->newposition[$rand_num] != '-') {
+            $rand_num = rand(0, 8);
+        }
+        return $rand_num;
+    }
+
+    // To check for a tie game see if there are 0 dashes left on the board.
+    // By the time the game checks for a tie game it would have already checked
+    // For winners
+    function tie_game() {
+        $tie = false;
+        $tie_dash = 0;
+        for($cell = 0; $cell < 9; $cell++) {
+            if ($this->position[$cell] == '-' ) {
+                $tie_dash++;
+            }
+        }
+        if($tie_dash == 0) {
+            $tie = true;
+        }
+        return $tie;
     }
 
 }
